@@ -37,3 +37,17 @@
 **Session Work:**
 - created btree class
 - insert and search have some basic functionalities
+
+## 12/8/2024 1:15AM
+**Thoughts so far:**
+- btree working, but doesn't split
+
+**Plan:**
+- add splitchild and insertnonfull methods
+- have insert handle full root
+- update search to descend nodes
+
+**Session Work:**
+- implemented splitchild, insertnonfull
+- updated insert
+- search traverses down tree

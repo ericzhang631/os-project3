@@ -191,30 +191,106 @@ class BTree:
         self.index_file.write_block(node.block_id, data)
 
     def search(self, key):
-        if self.index_file.root_block_id == 0:
+        return self._search_node(self.index_file.root_block_id, key)
+
+    def _search_node(self, block_id, key):
+        if block_id == 0:
             return None
-        node = self.load_node(self.index_file.root_block_id)
+        node = self.load_node(block_id)
         if node is None:
             return None
-        for i in range(node.num_keys):
-            if node.keys[i] == key:
-                return node.values[i]
-        return None
+        i = 0
+        while i < node.num_keys and key > node.keys[i]:
+            i+=1
+        if i < node.num_keys and key == node.keys[i]:
+            return node.values[i]
+        if node.is_leaf():
+            return None
+        return self._search_node(node.children[i], key)
 
     def insert(self, key, value):
         if self.index_file.root_block_id == 0:
             self.create_root()
-        node = self.load_node(self.index_file.root_block_id)
-        if node.num_keys < 19:
-            i = node.num_keys
-            node.keys[i] = key
-            node.values[i] = value
-            node.num_keys +=1
-            self.save_node(node)
-            return True
+        root = self.load_node(self.index_file.root_block_id)
+        if root.num_keys == 19:
+            new_root = BTreeNode()
+            new_root.block_id = self.index_file.next_block_id
+            self.index_file.next_block_id+=1
+            new_root.children[0] = root.block_id
+            root.parent_id = new_root.block_id
+            self.save_node(root)
+            self.split_child(new_root, 0)
+            self.save_node(new_root)
+            self.index_file.root_block_id = new_root.block_id
+            self.index_file.write_header()
+            self.insert_nonfull(new_root, key, value)
         else:
-            print("No space in root node (splitting not implemented yet).")
-            return False
+            self.insert_nonfull(root, key, value)
+
+    def insert_nonfull(self, node, key, value):
+        while True:
+            if node.is_leaf():
+                i = node.num_keys - 1
+                while i >= 0 and node.keys[i] > key:
+                    node.keys[i+1] = node.keys[i]
+                    node.values[i+1] = node.values[i]
+                    i-=1
+                if i>=0 and node.keys[i] == key:
+                    self.save_node(node)
+                    return
+                node.keys[i+1] = key
+                node.values[i+1] = value
+                node.num_keys+=1
+                self.save_node(node)
+                return
+            else:
+                i = node.num_keys-1
+                while i>=0 and node.keys[i] > key:
+                    i-=1
+                i+=1
+                child = self.load_node(node.children[i])
+                if child.num_keys == 19:
+                    self.split_child(node, i)
+                    if key > node.keys[i]:
+                        i+=1
+                    child = self.load_node(node.children[i])
+                node = child
+
+    def split_child(self, node, i):
+        child = self.load_node(node.children[i])
+        new_child = BTreeNode()
+        new_child.block_id = self.index_file.next_block_id
+        self.index_file.next_block_id+=1
+        mid = 9
+        new_child.num_keys = 9
+        for j in range(9):
+            new_child.keys[j] = child.keys[j+mid+1]
+            new_child.values[j] = child.values[j+mid+1]
+        for j in range(mid+1, child.num_keys+1):
+            new_child.children[j-(mid+1)] = child.children[j]
+        for j in range(new_child.num_keys+1,20):
+            new_child.children[j] = 0
+        for j in range(mid+1,19):
+            child.keys[j]=0
+            child.values[j]=0
+        for j in range(mid+1,20):
+            child.children[j]=0
+        child.num_keys = mid
+        new_child.parent_id = node.block_id
+        for j in range(node.num_keys, i, -1):
+            node.children[j+1] = node.children[j]
+        node.children[i+1]=new_child.block_id
+        for j in range(node.num_keys-1, i-1, -1):
+            node.keys[j+1]=node.keys[j]
+            node.values[j+1]=node.values[j]
+        node.keys[i]=child.keys[mid]
+        node.values[i]=child.values[mid]
+        node.num_keys+=1
+        child.keys[mid]=0
+        child.values[mid]=0
+        self.save_node(child)
+        self.save_node(new_child)
+        self.save_node(node)
 
 def main():
     current_index = None
@@ -274,9 +350,8 @@ def main():
                 print("Invalid input.")
                 continue
             if current_btree is not None:
-                success = current_btree.insert(k,v)
-                if success:
-                    print("Inserted key/value.")
+                current_btree.insert(k,v)
+                print("Inserted key/value.")
         elif cmd == 'search':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
