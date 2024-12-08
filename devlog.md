@@ -51,3 +51,16 @@
 - implemented splitchild, insertnonfull
 - updated insert
 - search traverses down tree
+
+## 12/8/2024 12:45PM
+**Thoughts so far:**
+- able to populate tree, so want to print tree and extract to file
+
+**Plan:**
+- traversal method to btree
+- use traversal for print and extract
+
+**Session Work:**
+- implemented in-order traversal
+- print shows all key value pairs in order
+- extract writes pairs to specified file

@@ -292,6 +292,39 @@ class BTree:
         self.save_node(new_child)
         self.save_node(node)
 
+    def in_order(self):
+        return self._in_order(self.index_file.root_block_id)
+
+    def _in_order(self, block_id):
+        if block_id == 0:
+            return []
+        node = self.load_node(block_id)
+        if node is None:
+            return []
+        result = []
+        for i in range(node.num_keys):
+            left = self._in_order(node.children[i])
+            result.extend(left)
+            result.append((node.keys[i], node.values[i]))
+        right = self._in_order(node.children[node.num_keys])
+        result.extend(right)
+        return result
+
+    def print_all(self):
+        pairs = self.in_order()
+        for k,v in pairs:
+            print(k,v)
+
+    def extract(self, filename):
+        pairs = self.in_order()
+        if os.path.exists(filename):
+            ans = input(f"{filename} exists. Overwrite? (y/n): ").strip().lower()
+            if ans not in ['y','yes']:
+                return
+        with open(filename,"w") as f:
+            for k,v in pairs:
+                f.write(f"{k},{v}\n")
+
 def main():
     current_index = None
     current_btree = None
@@ -377,12 +410,14 @@ def main():
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
-            print("not implemented yet.")
+            current_btree.print_all()
         elif cmd == 'extract':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
-            print("not implemented yet.")
+            fname = input("Enter file name: ").strip()
+            current_btree.extract(fname)
+            print("Extraction complete.")
         else:
             print("Unknown command.")
 
