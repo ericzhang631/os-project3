@@ -116,6 +116,47 @@ class IndexFile:
         except:
             return b''
 
+class BTreeNode:
+    def __init__(self):
+        self.block_id = 0
+        self.parent_id = 0
+        self.num_keys = 0
+        self.keys = [0]*19
+        self.values = [0]*19
+        self.children = [0]*20
+
+    def to_bytes(self):
+        b = bytearray(512)
+        b[0:8] = write_uint64_be(self.block_id)
+        b[8:16] = write_uint64_be(self.parent_id)
+        b[16:24] = write_uint64_be(self.num_keys)
+        pos = 24
+        for i in range(19):
+            b[pos:pos+8] = write_uint64_be(self.keys[i])
+            pos+=8
+        for i in range(19):
+            b[pos:pos+8] = write_uint64_be(self.values[i])
+            pos+=8
+        for i in range(20):
+            b[pos:pos+8] = write_uint64_be(self.children[i])
+            pos+=8
+        return b
+
+    def from_bytes(self, data):
+        self.block_id = read_uint64_be(data[0:8])
+        self.parent_id = read_uint64_be(data[8:16])
+        self.num_keys = read_uint64_be(data[16:24])
+        pos = 24
+        for i in range(19):
+            self.keys[i] = read_uint64_be(data[pos:pos+8])
+            pos+=8
+        for i in range(19):
+            self.values[i] = read_uint64_be(data[pos:pos+8])
+            pos+=8
+        for i in range(20):
+            self.children[i] = read_uint64_be(data[pos:pos+8])
+            pos+=8
+
 def main():
     current_index = None
     while True:
@@ -135,7 +176,6 @@ def main():
                 current_index = None
             break
         elif cmd == 'create':
-            filename = input("Enter filename: ").strip()
             if IndexFile.file_exists(filename):
                 ans = input(f"{filename} exists. Overwrite? (y/n): ").strip().lower()
                 if ans not in ['y', 'yes']:
@@ -161,7 +201,6 @@ def main():
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
-            print("not implemented yet.")
         elif cmd == 'search':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
@@ -171,17 +210,14 @@ def main():
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
-            print("not implemented yet.")
         elif cmd == 'print':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
-            print("implemented yet.")
         elif cmd == 'extract':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
-            print("not implemented yet.")
         else:
             print("Unknown command.")
 
