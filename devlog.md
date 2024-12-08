@@ -25,3 +25,15 @@
 **Session Work:**
 - added btreenode class
 - implemented to_bytes and from_bytes methods
+
+## 12/7/2024 11:42PM
+**Thoughts so far:**
+- need to integrate node into a b-tree
+
+**Plan:**
+- add btree class
+- basic insert and search functionalities
+
+**Session Work:**
+- created btree class
+- insert and search have some basic functionalities

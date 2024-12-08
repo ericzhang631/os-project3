@@ -157,8 +157,68 @@ class BTreeNode:
             self.children[i] = read_uint64_be(data[pos:pos+8])
             pos+=8
 
+    def is_leaf(self):
+        for c in self.children:
+            if c != 0:
+                return False
+        return True
+
+class BTree:
+    def __init__(self, index_file):
+        self.index_file = index_file
+        if self.index_file.root_block_id == 0:
+            self.create_root()
+
+    def create_root(self):
+        node = BTreeNode()
+        node.block_id = self.index_file.next_block_id
+        self.index_file.next_block_id += 1
+        self.index_file.write_header()
+        self.save_node(node)
+        self.index_file.root_block_id = node.block_id
+        self.index_file.write_header()
+
+    def load_node(self, block_id):
+        data = self.index_file.read_block(block_id)
+        if len(data) != 512:
+            return None
+        node = BTreeNode()
+        node.from_bytes(data)
+        return node
+
+    def save_node(self, node):
+        data = node.to_bytes()
+        self.index_file.write_block(node.block_id, data)
+
+    def search(self, key):
+        if self.index_file.root_block_id == 0:
+            return None
+        node = self.load_node(self.index_file.root_block_id)
+        if node is None:
+            return None
+        for i in range(node.num_keys):
+            if node.keys[i] == key:
+                return node.values[i]
+        return None
+
+    def insert(self, key, value):
+        if self.index_file.root_block_id == 0:
+            self.create_root()
+        node = self.load_node(self.index_file.root_block_id)
+        if node.num_keys < 19:
+            i = node.num_keys
+            node.keys[i] = key
+            node.values[i] = value
+            node.num_keys +=1
+            self.save_node(node)
+            return True
+        else:
+            print("No space in root node (splitting not implemented yet).")
+            return False
+
 def main():
     current_index = None
+    current_btree = None
     while True:
         print("\n--- Menu ---")
         print("create   Create new index")
@@ -174,8 +234,10 @@ def main():
             if current_index:
                 current_index.close()
                 current_index = None
+                current_btree = None
             break
         elif cmd == 'create':
+            filename = input("Enter filename: ").strip()
             if IndexFile.file_exists(filename):
                 ans = input(f"{filename} exists. Overwrite? (y/n): ").strip().lower()
                 if ans not in ['y', 'yes']:
@@ -190,34 +252,62 @@ def main():
             if current_index:
                 current_index.close()
                 current_index = None
-            filename = input("Enter filename (including extension): ").strip()
+                current_btree = None
+            filename = input("Enter filename: ").strip()
             idx = IndexFile()
             if not idx.open(filename):
                 print(f"Failed to open {filename}.")
             else:
                 current_index = idx
+                current_btree = BTree(current_index)
                 print(f"Index {filename} opened.")
         elif cmd == 'insert':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
+            k = input("Enter key: ").strip()
+            v = input("Enter value: ").strip()
+            try:
+                k=int(k)
+                v=int(v)
+            except:
+                print("Invalid input.")
+                continue
+            if current_btree is not None:
+                success = current_btree.insert(k,v)
+                if success:
+                    print("Inserted key/value.")
         elif cmd == 'search':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
-            print("Search not implemented yet.")
+            k = input("Enter key: ").strip()
+            try:
+                k=int(k)
+            except:
+                print("Invalid key.")
+                continue
+            if current_btree is not None:
+                val = current_btree.search(k)
+                if val is None:
+                    print("Key not found.")
+                else:
+                    print(k,val)
         elif cmd == 'load':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
+            print("not implemented yet.")
         elif cmd == 'print':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
+            print("not implemented yet.")
         elif cmd == 'extract':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
+            print("not implemented yet.")
         else:
             print("Unknown command.")
 
