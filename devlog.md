@@ -64,3 +64,16 @@
 - implemented in-order traversal
 - print shows all key value pairs in order
 - extract writes pairs to specified file
+
+## 12/8/2024 4:47PM
+**Thoughts so far:**
+- project seems nearly done, will do load function now
+
+**Plan:**
+- implement load command
+- parse csv files line by line
+- test if everything working
+
+**Session Work:**
+- load implemented
+- tested with the testdata.csv

@@ -325,6 +325,29 @@ class BTree:
             for k,v in pairs:
                 f.write(f"{k},{v}\n")
 
+    def load_from_file(self, filename):
+        if not os.path.exists(filename):
+            print("File does not exist.")
+            return
+        with open(filename,"r") as f:
+            for line in f:
+                line=line.strip()
+                if not line:
+                    continue
+                parts=line.split(",")
+                if len(parts)!=2:
+                    continue
+                k,v=parts
+                try:
+                    k=int(k)
+                    v=int(v)
+                except:
+                    continue
+                if self.search(k) is not None:
+                    print(f"Key {k} already exists, skipping.")
+                    continue
+                self.insert(k,v)
+
 def main():
     current_index = None
     current_btree = None
@@ -405,7 +428,9 @@ def main():
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
                 continue
-            print("not implemented yet.")
+            fname = input("Enter file name: ").strip()
+            current_btree.load_from_file(fname)
+            print("Load complete.")
         elif cmd == 'print':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
