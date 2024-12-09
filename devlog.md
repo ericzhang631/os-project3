@@ -77,3 +77,13 @@
 **Session Work:**
 - load implemented
 - tested with the testdata.csv
+
+## 12/8/2024 10:32PM
+**Thoughts so far:**
+- think i'm pretty much done just gotta add the readme and maybe polish it up a bit
+
+**Plan:**
+- fill out the readme
+
+**Session Work:**
+- filled out readme

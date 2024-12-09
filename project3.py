@@ -209,6 +209,8 @@ class BTree:
         return self._search_node(node.children[i], key)
 
     def insert(self, key, value):
+        if self.search(key) is not None:
+            return False
         if self.index_file.root_block_id == 0:
             self.create_root()
         root = self.load_node(self.index_file.root_block_id)
@@ -226,6 +228,7 @@ class BTree:
             self.insert_nonfull(new_root, key, value)
         else:
             self.insert_nonfull(root, key, value)
+        return True
 
     def insert_nonfull(self, node, key, value):
         while True:
@@ -235,9 +238,6 @@ class BTree:
                     node.keys[i+1] = node.keys[i]
                     node.values[i+1] = node.values[i]
                     i-=1
-                if i>=0 and node.keys[i] == key:
-                    self.save_node(node)
-                    return
                 node.keys[i+1] = key
                 node.values[i+1] = value
                 node.num_keys+=1
@@ -406,8 +406,11 @@ def main():
                 print("Invalid input.")
                 continue
             if current_btree is not None:
-                current_btree.insert(k,v)
-                print("Inserted key/value.")
+                inserted = current_btree.insert(k,v)
+                if inserted:
+                    print("Inserted key/value.")
+                else:
+                    print("Key already exists, insert failed.")
         elif cmd == 'search':
             if current_index is None or not current_index.is_open:
                 print("No index currently open.")
